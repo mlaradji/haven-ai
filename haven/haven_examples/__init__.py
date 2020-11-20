@@ -5,8 +5,17 @@ import numpy as np
 from torch.utils.data import TensorDataset
 from haven import haven_utils as hu
 from haven import haven_wizard as hw
+from haven.haven_examples.datasets import trancos
+from haven.haven_examples.models import lcfcn
 
+import pydantic
+from devtools import debug
+
+class TrainSet(pydantic.BaseModel):
+    n_classes: int
+    
 def get_loader(name, split, datadir, exp_dict):
+    debug(split, datadir, exp_dict)
     if name == 'syn':
         # get dataset and loader
         X = torch.randn(5000, 1, 28, 28)
@@ -31,7 +40,10 @@ def get_loader(name, split, datadir, exp_dict):
                                              train=train, download=True,
                                              transform=transform)
         loader = torch.utils.data.DataLoader(dataset, batch_size=256)
-
+        
+    if name == 'trancos':
+        dataset = trancos.Trancos(split, "../data/input/TRANCOS_v3", exp_dict)
+        loader = torch.utils.data.DataLoader(dataset, batch_size=1)
 
     return loader
 
@@ -47,7 +59,9 @@ def get_model(name, exp_dict):
     if name == 'seg_model':
         model = Mlp()
         model.opt = torch.optim.Adam(model.parameters(), lr=exp_dict['lr'])
-
+        
+    if name == 'lcfcn':
+        model = lcfcn.LCFCN(exp_dict, train_set=TrainSet(n_classes=1)) # ?: What is train_set?
 
     return model
 
