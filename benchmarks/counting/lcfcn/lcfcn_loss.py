@@ -7,8 +7,6 @@ from skimage.segmentation import find_boundaries
 from scipy import ndimage
 from skimage import morphology as morph
 
-
-
 def compute_loss(points, probs, roi_mask=None):
     """
     images: n x c x h x w
@@ -33,7 +31,6 @@ def compute_loss(points, probs, roi_mask=None):
         loss += tgt_dict['scale'] * F.binary_cross_entropy(pr_subset, 
                                         torch.ones(pr_subset.shape, device=pr_subset.device) * tgt_dict['label'], 
                                         reduction='mean')
-    
     return loss
 
 @torch.no_grad()

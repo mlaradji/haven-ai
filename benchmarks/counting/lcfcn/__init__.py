@@ -19,6 +19,7 @@ from haven import haven_utils as hu
 from . import lcfcn_loss
 from . import base_networks, metrics
 
+from devtools import debug
 
 class LCFCN(torch.nn.Module):
     def __init__(self, exp_dict, train_set):
@@ -92,11 +93,9 @@ class LCFCN(torch.nn.Module):
         points = batch["points"].long()
         logits = self.model_base.forward(images)
         loss = lcfcn_loss.compute_loss(points=points, probs=logits.sigmoid())
-        
         loss.backward()
 
         self.opt.step()
-
         return {"train_loss":loss.item()}
 
 
