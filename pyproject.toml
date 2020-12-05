@@ -1,0 +1,29 @@
+[tool.poetry]
+name = "haven-ai"
+version = "0.3.6"
+description = "Manage large-scale experiments"
+authors = ["Issam Laradji <issam.laradji@gmail.com>"]
+license = "MIT"
+
+[tool.poetry.dependencies]
+python = ">=3.6.1"
+requests = "^2.25.0"
+ipywidgets = "^7.5.1"
+tqdm = "^4.54.0"
+matplotlib = "^3.3.3"
+numpy = "^1.19.4"
+pandas = "^1.1.4"
+Pillow = "^8.0.1"
+scikit-image = "^0.17.2"
+scikit-learn = "^0.23.2"
+scipy = "^1.5.4"
+sklearn = "^0.0"
+torch = "^1.7.0"
+torchvision = "^0.8.1"
+jupyter = "^1.0.0"
+
+[tool.poetry.dev-dependencies]
+
+[build-system]
+requires = ["poetry-core>=1.0.0"]
+build-backend = "poetry.core.masonry.api"

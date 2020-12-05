@@ -51,7 +51,7 @@ class Trancos(data.Dataset):
         
         # collection = list(map(FT.to_pil_image, [image, points]))
         image, points = transformers.apply_transform(self.split, image, points, 
-                   transform_name=self.exp_dict['dataset_transform'])
+                   transform_name=self.exp_dict['dataset']['transform'])
             
         return {"images":image, 
                 "points":points.squeeze(), 
