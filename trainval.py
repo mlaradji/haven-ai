@@ -64,6 +64,9 @@ if __name__ == '__main__':
     elif args.job_scheduler == "toolkit":
         import job_configs
         job_config = job_configs.JOB_CONFIG
+    elif args.run_jobs == 3:
+        import gcp_config
+        job_config = gcp_config.JOB_CONFIG
     else:
         job_config = None
 
