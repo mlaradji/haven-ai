@@ -12,7 +12,8 @@ import numpy as np
 import getpass
 import pandas as pd
 from subprocess import SubprocessError
-
+import shlex
+import re
 from oauth2client.client import GoogleCredentials
 from googleapiclient import discovery
 from googleapiclient import errors
@@ -37,12 +38,22 @@ def generate_job_id() -> str:
     return f"haven_ai_{uuid.uuid4().hex}"
 
 
+def extract_args(command: str) -> str:
+    """
+    Given a string that matches `python trainval\.py (?P<args>.+)`, return the `args` regex group matched.
+
+    TODO: This is hacky!
+    """
+    pattern = r"python trainval\.py (?P<args>.+)"
+    return re.match(pattern, command).group("args")
+
+
 # Job submission
 # ==============
 def submit_job(
     api,
     account_id: str,
-    command,
+    command: str,
     job_config: GoogleJobConfig,
     workdir: str,
     savedir_logs=None,
@@ -52,6 +63,7 @@ def submit_job(
 
     You might need to execute `gcloud auth login` before using this function.
     """
+
     # Generate a random id. ?: Should we use the same id as the internal haven-ai id?
     job_id = generate_job_id()
 
@@ -63,7 +75,8 @@ def submit_job(
         --job-dir {job_config['JOB_DIR']} \
         --region {job_config['REGION']} \
         --runtime-version 2.4 \
-        --python-version 3.7"
+        --python-version 3.7 \
+        -- {extract_args(command)}"
 
     while True:
         try:
