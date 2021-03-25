@@ -3,6 +3,7 @@ from .. import haven_chk as hc
 import os
 from typing import TypedDict
 
+import uuid
 import time
 import copy
 import pandas as pd
@@ -24,7 +25,12 @@ class GoogleJobConfig(TypedDict):
     JOB_DIR: str
     REGION: str # Google Cloud region.
 
-
+def generate_job_id() -> str:
+    """
+    Generates a random string that starts with a letter and contains only letters, numbers, and underscores, as per Google Cloud Platform's requirements.
+    """
+    return f"haven_ai_{uuid.uuid4().hex}"
+    
 # Job submission
 # ==============
 def submit_job(
@@ -37,8 +43,13 @@ def submit_job(
 ):
     """
     Submit a job to Google AI Platform through the `gcloud` executable. This function requires the Google SDK to be installed, and the local path to the Google credentials should be set in the 'GOOGLE_APPLICATION_CREDENTIALS' environment variable.
+    
+    You might need to execute `gcloud auth login` before using this function.
     """
-    submit_command = f"gcloud ai-platform jobs submit training {job_config['JOB_NAME']} \
+    # Generate a random id. ?: Should we use the same id as the internal haven-ai id?
+    job_id = generate_job_id()
+
+    submit_command = f"gcloud ai-platform jobs submit training {job_id} \
         --scale-tier basic \
         --package-path {workdir} \
         --module-name {job_config['MODULE_NAME']} \
@@ -49,7 +60,7 @@ def submit_job(
 
     while True:
         try:
-            job_id = hu.subprocess_call(submit_command).split()[-1]
+            status = hu.subprocess_call(submit_command).split()[-1]
         except SubprocessError as e:
             if "Socket timed out" in str(e.output):
                 print("sbatch time out and retry now")
@@ -58,6 +69,7 @@ def submit_job(
             else:
                 # other errors
                 exit(str(e.output)[2:-1].replace("\\n", ""))
+        assert status == "QUEUED" # ?: Necessary?
         break
 
     return job_id
