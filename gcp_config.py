@@ -4,4 +4,6 @@ JOB_CONFIG = {
     "MODULE_NAME": "trainval.trainval",
     "JOB_DIR": "gs://haven-ai-gcp-test-1/data",
     "REGION": "us-west1",
+    "PROJECT_ID": "haven-ai-gcp-308300",
+    "account_id": "haven-ai-gcp-308300", # account_id should be the project ID.
 }
