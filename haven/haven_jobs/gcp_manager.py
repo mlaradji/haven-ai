@@ -1,6 +1,7 @@
 from .. import haven_utils as hu
 from .. import haven_chk as hc
 import os
+from typing import TypedDict
 
 import time
 import copy
@@ -13,29 +14,39 @@ from subprocess import SubprocessError
 from oauth2client.client import GoogleCredentials
 from googleapiclient import discovery
 from googleapiclient import errors
+from loguru import logger
+
+
+class GoogleJobConfig(TypedDict):
+    JOB_NAME: str
+    PACKAGE_PATH: str
+    MODULE_NAME: str
+    JOB_DIR: str
+    REGION: str # Google Cloud region.
+
 
 # Job submission
 # ==============
-def submit_job(api, account_id, command, job_config, workdir, savedir_logs=None):
-    # read slurm setting
-    lines = "#! /bin/bash \n"
-    lines += "#SBATCH --account=%s \n" % account_id
-    for key in list(job_config.keys()):
-        lines += "#SBATCH --%s=%s \n" % (key, job_config[key])
-    path_log = os.path.join(savedir_logs, "logs.txt")
-    lines += "#SBATCH --output=%s \n" % path_log
-    path_err = os.path.join(savedir_logs, "err.txt")
-    lines += "#SBATCH --error=%s \n" % path_err
-    path_code = os.path.join(savedir_logs, "code")
-    lines += "#SBATCH --chdir=%s \n" % path_code
+def submit_job(
+    api: discovery.Resource,
+    account_id,
+    command,
+    job_config: GoogleJobConfig,
+    workdir,
+    savedir_logs=None,
+):
+    """
+    Submit a job to Google AI Platform through the `gcloud` executable. This function requires the Google SDK to be installed, and the local path to the Google credentials should be set in the 'GOOGLE_APPLICATION_CREDENTIALS' environment variable.
+    """
+    submit_command = f"gcloud ai-platform jobs submit training {job_config['JOB_NAME']} \
+        --scale-tier basic \
+        --package-path {workdir} \
+        --module-name {job_config['MODULE_NAME']} \
+        --job-dir {job_config['JOB_DIR']} \
+        --region {job_config['REGION']} \
+        --runtime-version 2.4 \
+        --python-version 3.7"
 
-    lines += command
-
-    file_name = os.path.join(savedir_logs, "bash.sh")
-    hu.save_txt(file_name, lines)
-
-    # launch the exp
-    submit_command = "sbatch %s" % file_name
     while True:
         try:
             job_id = hu.subprocess_call(submit_command).split()[-1]
@@ -46,14 +57,11 @@ def submit_job(api, account_id, command, job_config, workdir, savedir_logs=None)
                 continue
             else:
                 # other errors
-                exit(str(e.output)[2:-1].replace('\\n', ''))
+                exit(str(e.output)[2:-1].replace("\\n", ""))
         break
 
-    # delete the bash.sh
-    os.remove(file_name)
-
     return job_id
-    
+
 
 # Job status
 # ===========
@@ -66,9 +74,9 @@ def get_job(api, job_id):
 
 
 def get_jobs(api, account_id):
-    ''' get all jobs launched by the current user'''
+    """ get all jobs launched by the current user"""
     job_list = ""
-    command = "squeue --user=%s --format=\"%%.18i %%.8T\"" % getpass.getuser()
+    command = 'squeue --user=%s --format="%%.18i %%.8T"' % getpass.getuser()
     while True:
         try:
             job_list = hu.subprocess_call(command)
@@ -79,10 +87,13 @@ def get_jobs(api, account_id):
                 continue
             else:
                 # other errors
-                exit(str(e.output)[2:-1].replace('\\n', ''))
+                exit(str(e.output)[2:-1].replace("\\n", ""))
         break
 
-    result = [{"job_id": j.split()[0], "state": j.split()[1]} for j in job_list.split('\n')[1:-1]]
+    result = [
+        {"job_id": j.split()[0], "state": j.split()[1]}
+        for j in job_list.split("\n")[1:-1]
+    ]
     return result
 
 
@@ -92,7 +103,9 @@ def get_jobs_dict(api, job_id_list, query_size=20):
 
     jobs_dict = {}
 
-    command = "sacct --jobs=%s --format=jobid,cputime,state" % str(job_id_list)[1:-1].replace(" ", "")
+    command = "sacct --jobs=%s --format=jobid,cputime,state" % str(job_id_list)[
+        1:-1
+    ].replace(" ", "")
     while True:
         try:
             job_list = hu.subprocess_call(command)
@@ -103,16 +116,18 @@ def get_jobs_dict(api, job_id_list, query_size=20):
                 continue
             else:
                 # other errors
-                exit(str(e.output)[2:-1].replace('\\n', ''))
+                exit(str(e.output)[2:-1].replace("\\n", ""))
         break
 
-    lines = job_list.split('\n')
+    lines = job_list.split("\n")
     header = lines[0].split()
     lines = [l.split() for l in lines[2:-1]]
 
     df = pd.DataFrame(data=lines, columns=header)
     df = df[~df["JobID"].str.contains(r"\.")]
-    df = df.rename(mapper={"State": "state", "CPUTime": "cpuTime", "JobID": "job_id"}, axis=1)
+    df = df.rename(
+        mapper={"State": "state", "CPUTime": "cpuTime", "JobID": "job_id"}, axis=1
+    )
     df = df.replace({"state": r"CANCELLED.*"}, {"state": "CANCELLED"}, regex=True)
     df.insert(loc=0, column="runs", value="")
 
@@ -123,6 +138,7 @@ def get_jobs_dict(api, job_id_list, query_size=20):
 
     return jobs_dict
 
+
 # Job kill
 # ===========
 
@@ -132,13 +148,13 @@ def kill_job(api, job_id):
     job = get_job(api, job_id)
 
     if job["state"] in ["CANCELLED", "COMPLETED", "FAILED", "TIMEOUT"]:
-        print('%s is already dead' % job_id)
+        print("%s is already dead" % job_id)
     else:
         kill_command = "scancel %s" % job_id
         while True:
             try:
                 hu.subprocess_call(kill_command)
-                print('%s CANCELLING...' % job_id)
+                print("%s CANCELLING..." % job_id)
             except Exception as e:
                 if "Socket timed out" in str(e):
                     print("scancel time out and retry now")
@@ -152,4 +168,4 @@ def kill_job(api, job_id):
             time.sleep(2)
             job = get_job(api, job_id)
 
-        print('%s now is dead.' % job_id)
+        print("%s now is dead." % job_id)

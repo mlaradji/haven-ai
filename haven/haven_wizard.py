@@ -107,6 +107,9 @@ def run_wizard(func, exp_list=None, exp_groups=None, job_config=None,
 
     elif job_scheduler in ['1']:
         job_scheduler = 'toolkit'
+    
+    elif job_scheduler in ['3']:
+        job_scheduler = 'gcp'
 
     else:
         raise ValueError(f'{job_scheduler} does not exist')
@@ -127,7 +130,7 @@ def run_wizard(func, exp_list=None, exp_groups=None, job_config=None,
         
         from haven import haven_jobs as hjb
         assert job_config is not None
-        assert 'account_id' in job_config
+        # assert 'account_id' in job_config # Is this needed?
 
         if workdir is None:
             workdir = os.getcwd()

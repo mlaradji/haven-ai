@@ -71,7 +71,7 @@ class JobManager:
         elif job_scheduler == 'gcp':
             from . import gcp_manager
             self.ho = gcp_manager
-            self.api = None # TODO: Is it better to define an api for gcp like that of toolkit?
+            self.api = None
 
     
     def get_command_history(self, topk=10):
