@@ -66,17 +66,22 @@ def submit_job(
 
     # Generate a random id. ?: Should we use the same id as the internal haven-ai id?
     job_id = generate_job_id()
-
+    print(workdir, " AND ", extract_args(command))
+    # submit_command = f"gcloud ai-platform local train \
+    #     --package-path {workdir}/src \
+    #     --module-name {job_config['MODULE_NAME']} \
+    #     --project {job_config['PROJECT_ID']} \
+    #     -- {command}"
     submit_command = f"gcloud ai-platform jobs submit training {job_id} \
-        --scale-tier basic \
-        --package-path {workdir} \
-        --project {job_config['PROJECT_ID']} \
+        --package-path {workdir}/src \
         --module-name {job_config['MODULE_NAME']} \
+        --scale-tier basic \
         --job-dir {job_config['JOB_DIR']} \
         --region {job_config['REGION']} \
         --runtime-version 2.4 \
         --python-version 3.7 \
-        -- {extract_args(command)}"
+        --project {job_config['PROJECT_ID']} \
+        -- {command}"
 
     while True:
         try:
@@ -89,7 +94,7 @@ def submit_job(
             else:
                 # other errors
                 exit(str(e.output)[2:-1].replace("\\n", ""))
-        assert status == "QUEUED", status  # ?: Necessary?
+        # assert status == "QUEUED", status  # ?: Necessary?
         break
 
     return job_id

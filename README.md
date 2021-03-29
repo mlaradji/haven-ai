@@ -50,8 +50,10 @@ python trainval.py --savedir_base /mnt/home/results -r 1 -j toolkit -v results.i
 - Run experiments in parallel using **Google Cloud Platform (GCP)**:
 
 ```
-To be added
+python trainval.py --savedir_base /mnt/home/results -r 1 -j 3 -v results.ipynb
 ```
+
+For GCP, the directory and file `src` and `src/__init__.py` need to exist, but can be empty. The directory can be changed using the parameter `"PACKAGE_PATH"` in `gcp_config.py`, but it must be a directory inside the root directory.
 
 <p align="center" width="100%">
 <img width="65%" src="docs/images/ork2.gif">
